@@ -1,8 +1,9 @@
 analysis
 apicache
-categories.csv
 throttle.ctrl
 user-config.py
 .project
 .pydevproject
 .settings
+input
+output

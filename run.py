@@ -2,25 +2,26 @@
 import pywikibot;
 import csv;
 import collections;
+import codecs;
 
-def run():
-    reader = csv.reader(open('categories.csv', 'r'))
-    d = collections.defaultdict(list);
+with codecs.open('./input/categories.csv', 'r', 'utf-8') as inputFile:
+    reader = csv.reader(inputFile, delimiter=",")
+    d = collections.defaultdict(list)
     for k, v in reader:
         d[k].append(v)
+with codecs.open('./output/categories_counts.csv', 'wb', 'utf-8') as outputFile:
+    countswriter = csv.writer(outputFile)
     for lang in d.viewkeys():
         categoryTitles = d[lang];
         site = pywikibot.Site(lang, "wikipedia");
-        for categoryTitle in categoryTitles: 
+        print "Processing language: " + lang;
+        for categoryTitle in categoryTitles:
+            print "Fetching details for " + categoryTitle;
             category = pywikibot.Category(site, categoryTitle);
-            print category;
-            print "Category size: " , category.categoryinfo.get("size");
-            print "Number of subcats: " , category.categoryinfo.get("subcats");
-            print "Loading subcat data...";
             totalSize = 0;
             for subcat in category.subcategories(True):
                 totalSize = totalSize + subcat.categoryinfo.get("size");
-            print "Total size: " , totalSize;
+            row = [lang, categoryTitle, category.categoryinfo.get("subcats"), totalSize];
+            countswriter.writerow(row);            
 
-run();
 
