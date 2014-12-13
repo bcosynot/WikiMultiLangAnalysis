@@ -1,0 +1,18 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+
+repositories {
+	maven { url "http://maven.clapper.org/" }
+	mavenLocal()
+	mavenCentral()
+}
+
+dependencies {
+	compile 'org.wikibrainapi:wikibrain:0.4.1'
+	//compile 'org.wikibrainapi:wikibrain-pageview:0.4.1'
+	compile 'org.apache.commons:commons-csv:1.0'
+	compile 'commons-cli:commons-cli:1.2'
+}
+
+task wrapper(type: Wrapper) { gradleVersion = '2.1' }
