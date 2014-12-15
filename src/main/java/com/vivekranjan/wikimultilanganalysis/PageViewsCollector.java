@@ -136,7 +136,7 @@ public class PageViewsCollector {
 			DateTime startDateTime = new DateTime(startDate);
 			DateTime endDateTime = new DateTime(endDate);
 			try {
-				LanguageSet languages = env.getLanguages();
+				LanguageSet languages = new LanguageSet(new ArrayList<String>(langs));
 				try {
 					languages.setDefaultLanguage(language);
 				} catch (WikiBrainException e) {
