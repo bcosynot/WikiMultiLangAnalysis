@@ -1,9 +1,13 @@
 apply plugin: 'java'
 apply plugin: 'eclipse'
+apply plugin: 'application'
 
 
 repositories {
 	maven { url "http://maven.clapper.org/" }
+	maven {
+    	 url "http://download.osgeo.org/webdav/geotools/"
+  	}
 	mavenLocal()
 	mavenCentral()
 }
@@ -14,5 +18,10 @@ dependencies {
 	compile 'org.apache.commons:commons-csv:1.0'
 	compile 'commons-cli:commons-cli:1.2'
 }
-
+mainClassName = 'com.vivekranjan.wikimultilanganalysis.PageViewsCollector'
 task wrapper(type: Wrapper) { gradleVersion = '2.1' }
+run {
+	if ( project.hasProperty("appArgs") ) {  
+        	args Eval.me(appArgs)  
+   	}
+}
