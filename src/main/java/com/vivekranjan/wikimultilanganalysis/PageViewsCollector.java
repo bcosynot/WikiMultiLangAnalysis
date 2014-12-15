@@ -11,7 +11,9 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
@@ -24,10 +26,12 @@ import org.apache.commons.csv.CSVRecord;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.wikibrain.conf.ConfigurationException;
+import org.wikibrain.core.WikiBrainException;
 import org.wikibrain.core.cmd.Env;
 import org.wikibrain.core.cmd.EnvBuilder;
 import org.wikibrain.core.dao.DaoException;
 import org.wikibrain.core.lang.Language;
+import org.wikibrain.core.lang.LanguageSet;
 import org.wikibrain.pageview.PageViewDao;
 
 import edu.emory.mathcs.backport.java.util.Arrays;
@@ -122,6 +126,8 @@ public class PageViewsCollector {
 		final PageViewDao viewDao = env.getConfigurator()
 				.get(PageViewDao.class);
 		Language language = Language.getByLangCode(langCode);
+		Set<String> langs = new HashSet<String>();
+		langs.add(language.getLangCode());
 
 		// Process file
 		try {
@@ -129,6 +135,17 @@ public class PageViewsCollector {
 			Iterable<CSVRecord> records = CSVFormat.TDF.parse(in);
 			DateTime startDateTime = new DateTime(startDate);
 			DateTime endDateTime = new DateTime(endDate);
+			try {
+				LanguageSet languages = env.getLanguages();
+				try {
+					languages.setDefaultLanguage(language);
+				} catch (WikiBrainException e) {
+					e.printStackTrace();
+				}
+				viewDao.ensureLoaded(startDateTime, endDateTime, languages);
+			} catch (DaoException e1) {
+				e1.printStackTrace();
+			}
 			List<String[]> outputs = new ArrayList<String[]>();
 			for (CSVRecord record : records) {
 				Integer pageId = Integer.parseInt(record.get(1));
