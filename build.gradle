@@ -17,6 +17,7 @@ dependencies {
 	//compile 'org.wikibrainapi:wikibrain-pageview:0.4.1'
 	compile 'org.apache.commons:commons-csv:1.0'
 	compile 'commons-cli:commons-cli:1.2'
+	compile 'joda-time:joda-time:2.6'
 }
 mainClassName = 'com.vivekranjan.wikimultilanganalysis.PageViewsCollector'
 task wrapper(type: Wrapper) { gradleVersion = '2.1' }

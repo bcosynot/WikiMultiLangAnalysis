@@ -7,10 +7,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.StringTokenizer;
 
@@ -23,6 +20,8 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wikibrain.conf.ConfigurationException;
@@ -48,6 +47,8 @@ public class PageViewsCollector {
 			.getLogger(PageViewsCollector.class);
 	private static final String INPUT_FILE_PREFIX = "categories-full-";
 
+	private static final String OUTPUT_FILE_PREFIX = "pageviews-count-";
+
 	private static final String TSV_EXTENSION = ".tsv";
 
 	private static final String CONF_WIKIBRAIN_OPTION = "c";
@@ -58,9 +59,9 @@ public class PageViewsCollector {
 	private static final String OUTPUT_FILE_PATH_OPTION = "of";
 	private static final String WIKI_LANG_OPTION = "langs";
 	private static String inputDirectoryPath;
-	private static String outputFilePath;
-	private static Date startDate;
-	private static Date endDate;
+	private static String outputDirectoryPath;
+	private static DateTime startDate;
+	private static DateTime endDate;
 	private static String langCodes;
 
 	/**
@@ -71,7 +72,8 @@ public class PageViewsCollector {
 	public static void main(String[] args) throws ConfigurationException,
 			ParseException {
 
-		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		DateTimeFormatter dateFormat = DateTimeFormat
+				.forPattern("yyyy-MM-dd HH:mm:ss");
 
 		Options options = new Options();
 		options.addOption(INPUT_FILE_PATH_OPTION, true,
@@ -91,25 +93,18 @@ public class PageViewsCollector {
 			inputDirectoryPath = cmd.getOptionValue(INPUT_FILE_PATH_OPTION);
 		}
 		if (cmd.hasOption(START_DATE_OPTION)) {
-			try {
-				startDate = dateFormat.parse(cmd
-						.getOptionValue(START_DATE_OPTION));
-			} catch (java.text.ParseException e) {
-				e.printStackTrace();
-			}
+			startDate = dateFormat.parseDateTime(cmd
+					.getOptionValue(START_DATE_OPTION));
 		}
 		if (cmd.hasOption(END_DATE_OPTION)) {
-			try {
-				endDate = dateFormat.parse(cmd.getOptionValue(END_DATE_OPTION));
-			} catch (java.text.ParseException e) {
-				e.printStackTrace();
-			}
+			endDate = dateFormat.parseDateTime(cmd
+					.getOptionValue(END_DATE_OPTION));
 		}
 		if (cmd.hasOption(WIKI_LANG_OPTION)) {
 			langCodes = cmd.getOptionValue(WIKI_LANG_OPTION);
 		}
 		if (cmd.hasOption(OUTPUT_FILE_PATH_OPTION)) {
-			outputFilePath = cmd.getOptionValue(OUTPUT_FILE_PATH_OPTION);
+			outputDirectoryPath = cmd.getOptionValue(OUTPUT_FILE_PATH_OPTION);
 		}
 
 		String argsForWikiBrain[] = new String[1];
@@ -152,6 +147,9 @@ public class PageViewsCollector {
 					+ lang + TSV_EXTENSION;
 			logger.info("Processing language: " + lang);
 			logger.info("Using input file: " + inputFilePath);
+			String outputFilePath = outputDirectoryPath + "/"
+					+ OUTPUT_FILE_PREFIX + lang + TSV_EXTENSION;
+			logger.info("Using output file: " + outputFilePath);
 			try {
 				Reader in = new FileReader(inputFilePath);
 				Iterable<CSVRecord> records = CSVFormat.TDF.parse(in);
@@ -159,16 +157,17 @@ public class PageViewsCollector {
 				for (CSVRecord record : records) {
 					Integer pageId = Integer.parseInt(record.get(1));
 					try {
-
-						Integer numViews = viewDao.getNumViews(language,
-								pageId, startDateTime, endDateTime);
-						int size = record.size();
-						String[] output = new String[size + 1];
-						for (int i = 0; i < size; i++) {
-							output[i] = record.get(i);
+						for (DateTime date = startDate; date.isBefore(endDate); date = date
+								.plusDays(1)) {
+							DateTime plus = date.plus(86399000);
+							Integer numViews = viewDao.getNumViews(language,
+									pageId, startDateTime, plus);
+							String[] row = new String[3];
+							row[0] = pageId.toString();
+							row[1] = dateFormat.print(date);
+							row[2] = numViews.toString();
+							outputs.add(row);
 						}
-						output[output.length - 1] = numViews.toString();
-						outputs.add(output);
 					} catch (NumberFormatException e) {
 						e.printStackTrace();
 					} catch (DaoException e) {
