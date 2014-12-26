@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.StringTokenizer;
 
@@ -72,8 +73,9 @@ public class PageViewsCollector {
 	public static void main(String[] args) throws ConfigurationException,
 			ParseException {
 
-		DateTimeFormatter dateFormat = DateTimeFormat
+		DateTimeFormatter dateTimeFormat = DateTimeFormat
 				.forPattern("yyyy-MM-dd HH:mm:ss");
+		DateTimeFormatter dateFormat = DateTimeFormat.forPattern("yyyy-MM-dd");
 
 		Options options = new Options();
 		options.addOption(INPUT_FILE_PATH_OPTION, true,
@@ -93,11 +95,11 @@ public class PageViewsCollector {
 			inputDirectoryPath = cmd.getOptionValue(INPUT_FILE_PATH_OPTION);
 		}
 		if (cmd.hasOption(START_DATE_OPTION)) {
-			startDate = dateFormat.parseDateTime(cmd
+			startDate = dateTimeFormat.parseDateTime(cmd
 					.getOptionValue(START_DATE_OPTION));
 		}
 		if (cmd.hasOption(END_DATE_OPTION)) {
-			endDate = dateFormat.parseDateTime(cmd
+			endDate = dateTimeFormat.parseDateTime(cmd
 					.getOptionValue(END_DATE_OPTION));
 		}
 		if (cmd.hasOption(WIKI_LANG_OPTION)) {
@@ -150,22 +152,55 @@ public class PageViewsCollector {
 			String outputFilePath = outputDirectoryPath + "/"
 					+ OUTPUT_FILE_PREFIX + lang + TSV_EXTENSION;
 			logger.info("Using output file: " + outputFilePath);
+			int i = 0;
 			try {
 				Reader in = new FileReader(inputFilePath);
 				Iterable<CSVRecord> records = CSVFormat.TDF.parse(in);
 				List<String[]> outputs = new ArrayList<String[]>();
-				for (CSVRecord record : records) {
-					Integer pageId = Integer.parseInt(record.get(1));
+				Iterator<CSVRecord> iterator = null;
+				try {
+					iterator = records.iterator();
+				} catch (Exception e3) {
+					logger.error(
+							"Problem parsing records, going to next language.",
+							e3);
+					continue;
+				}
+				while (iterator.hasNext()) {
+					CSVRecord record = null;
+					try {
+						record = iterator.next();
+					} catch (Exception e2) {
+						logger.error("Problem parsing record no." + i, e2);
+						continue;
+					}
+					Integer pageId = null;
+					try {
+						pageId = Integer.parseInt(record.get(1));
+					} catch (NumberFormatException e1) {
+						logger.error("Problem parsing pageId for record no."
+								+ i, e1);
+						continue;
+					}
+					String category = "";
+					try {
+						category = record.get(0);
+					} catch (Exception e1) {
+						logger.error("Problem parsing category for record no."
+								+ i, e1);
+						category = "N/A";
+					}
 					try {
 						for (DateTime date = startDate; date.isBefore(endDate); date = date
 								.plusDays(1)) {
 							DateTime plus = date.plus(86399000);
 							Integer numViews = viewDao.getNumViews(language,
 									pageId, startDateTime, plus);
-							String[] row = new String[3];
+							String[] row = new String[4];
 							row[0] = pageId.toString();
 							row[1] = dateFormat.print(date);
 							row[2] = numViews.toString();
+							row[3] = category;
 							outputs.add(row);
 						}
 					} catch (NumberFormatException e) {
@@ -173,8 +208,10 @@ public class PageViewsCollector {
 					} catch (DaoException e) {
 						e.printStackTrace();
 					}
+					i++;
 				}
 				Appendable outputFile = new FileWriter(outputFilePath);
+				logger.info("Writing output file.");
 				CSVPrinter print = CSVFormat.TDF.print(outputFile);
 				for (String[] output : outputs) {
 					print.printRecord(Arrays.asList(output));
