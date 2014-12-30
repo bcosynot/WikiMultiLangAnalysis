@@ -166,7 +166,14 @@ public class PageViewsCollector {
 							e3);
 					continue;
 				}
-				while (iterator.hasNext()) {
+				boolean hasNext = false;
+				try {
+					hasNext = iterator.hasNext();
+				} catch (Exception e3) {
+					e3.printStackTrace();
+					logger.error("Unable to get record.", e3);
+				}
+				while (hasNext) {
 					CSVRecord record = null;
 					try {
 						record = iterator.next();
@@ -180,6 +187,12 @@ public class PageViewsCollector {
 					} catch (NumberFormatException e1) {
 						logger.error("Problem parsing pageId for record no."
 								+ i, e1);
+						try {
+							hasNext = iterator.hasNext();
+						} catch (Exception e3) {
+							e3.printStackTrace();
+							logger.error("Unable to get record.", e3);
+						}
 						continue;
 					}
 					String category = "";
@@ -209,6 +222,18 @@ public class PageViewsCollector {
 						e.printStackTrace();
 					}
 					i++;
+					try {
+						hasNext = iterator.hasNext();
+					} catch (Exception e3) {
+						e3.printStackTrace();
+						logger.error("Unable to get record no." + i, e3);
+						try {
+							record = iterator.next();
+						} catch (Exception e2) {
+							logger.error("Problem parsing record no." + i, e2);
+							continue;
+						}
+					}
 				}
 				Appendable outputFile = new FileWriter(outputFilePath);
 				logger.info("Writing output file.");
