@@ -153,6 +153,7 @@ public class PageViewsCollector {
 					+ OUTPUT_FILE_PREFIX + lang + TSV_EXTENSION;
 			logger.info("Using output file: " + outputFilePath);
 			int i = 0;
+			int skipped = 0;
 			try {
 				Reader in = new FileReader(inputFilePath);
 				Iterable<CSVRecord> records = CSVFormat.TDF.parse(in);
@@ -174,11 +175,24 @@ public class PageViewsCollector {
 					logger.error("Unable to get record.", e3);
 				}
 				while (hasNext) {
+					if (i > 0 && i % 1000 == 0) {
+						logger.info("Processed " + i + " records for " + lang);
+						logger.info("Skipped " + skipped + " records for "
+								+ lang);
+					}
+					i++;
 					CSVRecord record = null;
 					try {
 						record = iterator.next();
 					} catch (Exception e2) {
 						logger.error("Problem parsing record no." + i, e2);
+						try {
+							hasNext = iterator.hasNext();
+						} catch (Exception e3) {
+							e3.printStackTrace();
+							logger.error("Unable to get record.", e3);
+						}
+						skipped++;
 						continue;
 					}
 					Integer pageId = null;
@@ -193,6 +207,7 @@ public class PageViewsCollector {
 							e3.printStackTrace();
 							logger.error("Unable to get record.", e3);
 						}
+						skipped++;
 						continue;
 					}
 					String category = "";
@@ -221,7 +236,6 @@ public class PageViewsCollector {
 					} catch (DaoException e) {
 						e.printStackTrace();
 					}
-					i++;
 					try {
 						hasNext = iterator.hasNext();
 					} catch (Exception e3) {
@@ -231,6 +245,13 @@ public class PageViewsCollector {
 							record = iterator.next();
 						} catch (Exception e2) {
 							logger.error("Problem parsing record no." + i, e2);
+							try {
+								hasNext = iterator.hasNext();
+							} catch (Exception e4) {
+								e3.printStackTrace();
+								logger.error("Unable to get record.", e4);
+							}
+							skipped++;
 							continue;
 						}
 					}
